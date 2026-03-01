@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أرشيف الإرث الصوفي</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f1ea; color: #2c3e50; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { background: white; padding: 30 border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; border-top: 8px solid #1b4332; }
+        h1 { color: #1b4332; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background-color: #1b4332; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
+        button:hover { background-color: #2d6a4f; }
+        #list { margin-top: 30px; width: 100%; max-width: 500px; }
+        .card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-right: 5px solid #d4af37; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🌿 أرشيف الإرث الصوفي</h1>
+        <p style="text-align: center; font-size: 0.9em; color: #666;">سجل المخطوطات في السحابة مباشرة</p>
+        
+        <input type="text" id="title" placeholder="عنوان المخطوطة (مثلاً: الفتوحات المكية)">
+        <input type="text" id="author" placeholder="اسم المؤلف (مثلاً: ابن عربي)">
+        <button id="addBtn">حفظ في الأرشيف السحابي 💾</button>
+        <p id="status" style="text-align: center; font-size: 0.8em;"></p>
+    </div>
+
+    <div id="list">
+        </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // إعداداتك الخاصة بمشروع studio-ucjz7
+        const firebaseConfig = {
+            apiKey: "AIzaSyCZKqrULya0k6zyot9w_8QotWwl86FDlvc",
+            authDomain: "studio-ucjz7.firebaseapp.com",
+            projectId: "studio-ucjz7",
+            storageBucket: "studio-ucjz7.firebasestorage.app",
+            messagingSenderId: "577313199083",
+            appId: "1:577313199083:web:1101d1341fd708e7227fae"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // وظيفة الإضافة عند الضغط على الزر
+        document.getElementById('addBtn').onclick = async () => {
+            const t = document.getElementById('title').value;
+            const a = document.getElementById('author').value;
+            const status = document.getElementById('status');
+
+            if (!t || !a) return alert("يرجى إكمال البيانات");
+
+            try {
+                status.innerText = "جاري الاتصال بالسحابة... ⏳";
+                await addDoc(collection(db, "manuscripts"), {
+                    title: t,
+                    author: a,
+                    createdAt: serverTimestamp()
+                });
+                document.getElementById('title').value = "";
+                document.getElementById('author').value = "";
+                status.innerText = "✅ تم الحفظ بنجاح!";
+            } catch (e) {
+                status.innerText = "❌ خطأ: " + e.message;
+            }
+        };
+
+        // وظيفة العرض التلقائي (Real-time Update)
+        const q = query(collection(db, "manuscripts"), orderBy("createdAt", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const listDiv = document.getElementById('list');
+            listDiv.innerHTML = "<h3 style='color: #1b4332;'>📂 السجلات الحالية:</h3>";
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                listDiv.innerHTML += `
+                    <div class="card">
+                        <strong>${data.title}</strong><br>
+                        <small>تأليف: ${data.author}</small>
+                    </div>`;
+            });
+        });
+    </script>
+</body>
+</html>
+

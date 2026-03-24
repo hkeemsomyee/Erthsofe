@@ -3,88 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أرشيف الإرث الصوفي</title>
+    <title>مكتبة الإرث الصوفي العامة</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f1ea; color: #2c3e50; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .container { background: white; padding: 30 border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; border-top: 8px solid #1b4332; }
-        h1 { color: #1b4332; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background-color: #1b4332; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
-        button:hover { background-color: #2d6a4f; }
-        #list { margin-top: 30px; width: 100%; max-width: 500px; }
-        .card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-right: 5px solid #d4af37; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f7f6; padding: 20px; text-align: center; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        input, textarea { width: 95%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+        button { background-color: #2c5e50; color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: bold; font-size: 18px; transition: 0.3s; }
+        button:hover { background-color: #1e4238; }
+        .book-card { background: #fff; border-right: 6px solid #2c5e50; margin-top: 20px; padding: 15px; text-align: right; box-shadow: 0 4px 8px rgba(0,0,0,0.05); border-radius: 10px; animation: fadeIn 0.5s; }
+        .download-link { background: #2c5e50; color: white !important; padding: 8px 20px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 10px; font-weight: bold; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>🌿 أرشيف الإرث الصوفي</h1>
-        <p style="text-align: center; font-size: 0.9em; color: #666;">سجل المخطوطات في السحابة مباشرة</p>
-        
-        <input type="text" id="title" placeholder="عنوان المخطوطة (مثلاً: الفتوحات المكية)">
-        <input type="text" id="author" placeholder="اسم المؤلف (مثلاً: ابن عربي)">
-        <button id="addBtn">حفظ في الأرشيف السحابي 💾</button>
-        <p id="status" style="text-align: center; font-size: 0.8em;"></p>
-    </div>
+<div class="container">
+    <h1 style="color: #2c5e50;">🌿 مكتبة الإرث الصوفي</h1>
+    <p style="color: #666;">شارك المعرفة - انشر كتابك ليظهر فوراً للجميع</p>
+    
+    <input type="text" id="title" placeholder="عنوان الكتاب المستهدف">
+    <input type="text" id="author" placeholder="اسم المؤلف">
+    <input type="text" id="driveUrl" placeholder="رابط التحميل (Google Drive أو غيره)">
+    <textarea id="desc" placeholder="نبذة مختصرة عن الكتاب..." rows="2"></textarea>
+    
+    <button onclick="publishNow()">نشر الكتاب الآن 🚀</button>
+    <p id="successMsg" style="color: #28a745; font-weight: bold; display: none; margin-top: 15px;">تم النشر بنجاح! الكتاب متاح الآن للجميع ✅</p>
 
-    <div id="list">
-        </div>
+    <hr style="margin: 30px 0; border: 0.5px solid #eee;">
+    <h3>📚 المكتبة المفتوحة:</h3>
+    <div id="booksList"></div>
+</div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+<script>
+    // إعدادات مشروعك studio-ucjz7
+    const firebaseConfig = {
+        apiKey: "AIzaSyCZKqrULya0k6zyot9w_8QotWwl86FDlvc",
+        authDomain: "studio-ucjz7.firebaseapp.com",
+        projectId: "studio-ucjz7",
+        storageBucket: "studio-ucjz7.appspot.com",
+        messagingSenderId: "543787363456",
+        appId: "1:543787363456:web:158a157d6051515286FDlvc"
+    };
 
-        // إعداداتك الخاصة بمشروع studio-ucjz7
-        const firebaseConfig = {
-            apiKey: "AIzaSyCZKqrULya0k6zyot9w_8QotWwl86FDlvc",
-            authDomain: "studio-ucjz7.firebaseapp.com",
-            projectId: "studio-ucjz7",
-            storageBucket: "studio-ucjz7.firebasestorage.app",
-            messagingSenderId: "577313199083",
-            appId: "1:577313199083:web:1101d1341fd708e7227fae"
-        };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    // وظيفة النشر التلقائي
+    async function publishNow() {
+        const title = document.getElementById('title').value;
+        const author = document.getElementById('author').value;
+        const url = document.getElementById('driveUrl').value;
+        const desc = document.getElementById('desc').value;
 
-        // وظيفة الإضافة عند الضغط على الزر
-        document.getElementById('addBtn').onclick = async () => {
-            const t = document.getElementById('title').value;
-            const a = document.getElementById('author').value;
-            const status = document.getElementById('status');
-
-            if (!t || !a) return alert("يرجى إكمال البيانات");
-
+        if(title && url) {
             try {
-                status.innerText = "جاري الاتصال بالسحابة... ⏳";
-                await addDoc(collection(db, "manuscripts"), {
-                    title: t,
-                    author: a,
-                    createdAt: serverTimestamp()
+                await db.collection("library").add({
+                    title: title,
+                    author: author,
+                    downloadUrl: url,
+                    description: desc,
+                    status: "approved", // تم التغيير ليصبح "مقبولاً" تلقائياً
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                document.getElementById('title').value = "";
-                document.getElementById('author').value = "";
-                status.innerText = "✅ تم الحفظ بنجاح!";
+                document.getElementById('successMsg').style.display = 'block';
+                // تفريغ الخانات
+                document.getElementById('title').value = '';
+                document.getElementById('author').value = '';
+                document.getElementById('driveUrl').value = '';
+                document.getElementById('desc').value = '';
+                
+                setTimeout(() => { document.getElementById('successMsg').style.display = 'none'; }, 5000);
             } catch (e) {
-                status.innerText = "❌ خطأ: " + e.message;
+                alert("حدث خطأ: " + e.message);
             }
-        };
+        } else {
+            alert("يرجى إدخال عنوان الكتاب ورابط التحميل على الأقل!");
+        }
+    }
 
-        // وظيفة العرض التلقائي (Real-time Update)
-        const q = query(collection(db, "manuscripts"), orderBy("createdAt", "desc"));
-        onSnapshot(q, (snapshot) => {
-            const listDiv = document.getElementById('list');
-            listDiv.innerHTML = "<h3 style='color: #1b4332;'>📂 السجلات الحالية:</h3>";
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                listDiv.innerHTML += `
-                    <div class="card">
-                        <strong>${data.title}</strong><br>
-                        <small>تأليف: ${data.author}</small>
-                    </div>`;
-            });
+    // عرض الكتب فوراً (الأحدث أولاً)
+    db.collection("library").where("status", "==", "approved").orderBy("timestamp", "desc")
+    .onSnapshot((snap) => {
+        const list = document.getElementById('booksList');
+        list.innerHTML = '';
+        snap.forEach((doc) => {
+            const b = doc.data();
+            list.innerHTML += `
+                <div class="book-card">
+                    <h4>📖 ${b.title}</h4>
+                    <p><strong>تأليف:</strong> ${b.author || 'غير معروف'}</p>
+                    <p style="font-size:14px; color:#555;">${b.description || ''}</p>
+                    <a href="${b.downloadUrl}" target="_blank" class="download-link">تحميل الكتاب 📥</a>
+                </div>
+            `;
         });
-    </script>
+    });
+</script>
+
 </body>
 </html>
 
